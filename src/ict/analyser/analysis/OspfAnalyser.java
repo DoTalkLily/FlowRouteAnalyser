@@ -118,7 +118,7 @@ public class OspfAnalyser extends Thread {
 
 			if (dstRouterId == 0) {
 				debug(0, netflow.getDstAddr());
-				return;
+				continue;
 			}
 
 			netflow.setSrcRouter(srcRouterId);

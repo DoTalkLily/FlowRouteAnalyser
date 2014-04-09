@@ -7,6 +7,7 @@
 package ict.analyser.ospftopo;
 
 import ict.analyser.tools.IPTranslator;
+import ict.analyser.tools.Utils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -145,13 +146,11 @@ public class OspfTopo {
 
 		Object obj = this.mapIpRouterid.get(ip);
 
-		if (obj == null) {
-			logger.warning("cannot get rid of ip:"
-					+ IPTranslator.calLongToIp(ip));
-			return 0;
+		if (obj != null) {
+			return (Long) obj;
 		}
 
-		return (Long) obj;
+		return getRouterIdByPrefix(ip, Utils.IntToByte(32));// 有时routerIp会在stub中，即lsa3
 	}
 
 	/**
