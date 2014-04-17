@@ -122,10 +122,12 @@ public class OspfTopo {
 				nextHop = item.getNextHop();
 				InterAsLink link = this.mapNextHopAsLink.get(nextHop);
 
-				if (link != null) {
-					Object[] result = new Object[2];
-					result[0] = link.getMyBrId();
-					result[1] = link.getLinkId();
+				if (link != null && item.getAsPath() != null) {
+					Object[] result = new Object[3];
+					result[0] = link.getMyBrId();// 本as的asbr的id
+					result[1] = link.getLinkId(); // 链路id
+					result[2] = item.getAsPath().get(
+							(item.getAsPath().size() - 1));// 目的prefix的as号
 					return result;
 				}
 			}
