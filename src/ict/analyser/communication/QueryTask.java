@@ -256,7 +256,7 @@ public class QueryTask implements Runnable {
 		String routerB = params.getString("routerB");
 		String selectStr = "select sum(bytes) as byte,srcIP, dstIP,srcMask,dstMask,srcAS,dstAS,path from netflow"
 				+ (pid / 10000) + " where pid=" + pid;
-		String tailCondition = " order by sum(bytes) desc limit " + topN + ";";
+		String tailCondition = " order by byte desc limit " + topN + ";";
 		String groupCondition = " group by srcIP, dstIP ";
 		String sql = selectStr + " and path like '%" + routerA + "%" + routerB
 				+ "%' " + groupCondition + tailCondition;
@@ -321,7 +321,8 @@ public class QueryTask implements Runnable {
 		String ipB = params.getString("ipB");
 		String selectStr = "select sum(bytes) as byte,srcIP, dstIP,srcMask,dstMask,srcPort,dstPort,srcAS,dstAS,input,tos,path,protocal from netflow"
 				+ (pid / 10000) + " where pid=" + pid;
-		String tailCondition = " order by sum(bytes) desc " + ";";
+		String tailCondition = " group by srcIP,dstIP,srcPort,dstPort,protocal order by byte desc "
+				+ ";";
 
 		String sql = selectStr + " and srcIP=" + IPTranslator.calIPtoLong(ipA)
 				+ " and dstIP=" + IPTranslator.calIPtoLong(ipB) + tailCondition;
@@ -354,7 +355,8 @@ public class QueryTask implements Runnable {
 		String selectStr = "select bytes as byte,srcIP, dstIP,srcMask,dstMask,srcPort,dstPort,srcAS,dstAS,input,tos,path,protocal from netflow"
 				+ (pid / 10000) + " where pid=" + pid;
 		String portCondition = getPortCondition(protocal);
-		String tailCondition = " order by bytes desc limit " + topN + ";";
+		String tailCondition = " group by srcIP, dstIP,srcPort,dstPort,protocal order by byte desc limit "
+				+ topN + ";";
 		String sql = selectStr + " and path like '%" + routerA + "%" + routerB
 				+ "%' " + portCondition + tailCondition;
 

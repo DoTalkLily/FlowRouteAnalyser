@@ -1,12 +1,5 @@
 package ict.analyser.tools;
 
-import ict.analyser.common.Constant;
-
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
-
 public abstract class Utils {
 	public static byte IntToByte(int i) {
 		return (byte) i;
@@ -166,22 +159,15 @@ public abstract class Utils {
 				+ value1(sec);
 	}
 
-	static SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmm");
-
 	public static final int pid2HourOfYear(long pid) {
-		Date date = null;
-		try {
-			date = sdf.parse(String.valueOf(pid));
-			Calendar calendar = Calendar.getInstance(); // 得到日历
-			calendar.setTime(date);// 把当前时间赋给日历
-			// 距离2013年1月1日0点过去过少个小时
-			return (calendar.get(Calendar.YEAR) - Constant.START_YEAR) * 8760
-					+ calendar.get(Calendar.DAY_OF_YEAR) * 24
-					+ calendar.get(Calendar.HOUR_OF_DAY);
-		} catch (ParseException e) {
-			e.printStackTrace();
+		String pidStr = String.valueOf(pid);
+
+		if (pidStr.length() < 12) {// pid格式不正确情况
+			return 0;
 		}
-		return 0;
+
+		String hour = pidStr.substring(8, 10);
+		return Integer.valueOf(hour);
 	}
 
 	public static final String toInterval(long i) {

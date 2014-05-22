@@ -152,14 +152,14 @@ public class MainProcesser {
 			return;
 		}
 
+		// 得到路径分析后的结果链路id——byte映射
+		this.mapLidTlink = this.routeAnalyser.getMapLidTlink();// 得到路径分析后的结果链路id—业务流量映射
+
 		if (message == Constant.FLOW_NOT_RECEIVED) {// 如果流量为空，只发送拓扑结构给综合分析
 			PID_INDEX++;
 			reportTopoToGlobal();
 			return;
 		}
-
-		// 得到路径分析后的结果链路id——byte映射
-		this.mapLidTlink = this.routeAnalyser.getMapLidTlink();// 得到路径分析后的结果链路id—业务流量映射
 
 		if (this.mapLidTlink == null || this.mapLidTlink.size() == 0) {// 如果拓扑对象不为空，但是拓扑上没有链路信息，发送pid给综合分析
 			PID_INDEX++;// 周期索引增加

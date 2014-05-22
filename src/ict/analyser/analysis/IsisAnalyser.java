@@ -412,7 +412,8 @@ public class IsisAnalyser extends Thread {
 		for (int i = 0; i < size; i++) {
 			link = links.get(i);
 			linkId = link.getLinkId();
-			setMapLidTraffic(linkId, netflow.getdOctets(), netflow.getDstPort());
+			setMapLidTraffic(linkId, netflow.getdOctets(),
+					netflow.getSrcPort(), netflow.getDstPort());
 		}
 		Flow flow = new Flow(netflow, path);
 		this.allFlowRoute.add(flow);
@@ -422,12 +423,13 @@ public class IsisAnalyser extends Thread {
 	 * @param mapLinkIdBytes
 	 *            The mapLinkIdBytes to set. 如果端口号为0，则算other类流量
 	 */
-	public void setMapLidTraffic(int linkId, long bytes, int port) {
+	public void setMapLidTraffic(int linkId, long bytes, int srcPort,
+			int dstPort) {
 		if (linkId == 0 || bytes == 0) {
 			return;
 		}
 
-		String protocal = this.processer.getProtocalByPort(port);// 根据端口号获得协议名字
+		String protocal = this.processer.getProtocalByPort(srcPort, dstPort);// 根据端口号获得协议名字
 
 		// 如果这个端口号没找到相应协议名，记为“other”类型
 		if (protocal == null) {

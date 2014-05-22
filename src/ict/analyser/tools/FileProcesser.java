@@ -894,11 +894,18 @@ public class FileProcesser {
 				id = linkEntry.getKey();
 				toAdd = linkEntry.getValue();
 
-				if (id == 0 || toAdd == null) {
+				if (id == 0 && toAdd == null) {
 					continue;
 				}
 
 				linkObj.put("id", id);
+
+				if (toAdd == null) {// 没接收到流量情况
+					linkObj.put("total", 0);
+					links.put(linkObj);
+					continue;
+				}
+
 				linkObj.put("total", toAdd.getTotal() * ConfigData.SAMPLE_RATE);// 链路上的流量*采样比
 				mapProtocalBytes = toAdd.getProtocalBytes();
 

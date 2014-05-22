@@ -18,6 +18,7 @@ import ict.analyser.statistics.StatisticItem;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
@@ -61,19 +62,23 @@ public class RouteAnalyser {
 	public void ospfPreCalculate() {
 		resetMaterials();
 
-		ArrayList<Long> allRouterIds = this.ospfTopo.getAllRouterIds();// 得到全部路由器id列表，供n个线程互斥访问
-		int eachSize = allRouterIds.size() / Constant.PRECAL_THREAD_COUNT;// 将条目总数分成若干份，每份条目数
+		if (ospfTopo.getAllRouterIds().size() <= 10) { // 如果当前拓扑节点少于10个
+			createOspfAnalyser(ospfTopo.getAllRouterIds());
+		} else {
+			int eachSize = ospfTopo.getAllRouterIds().size()
+					/ Constant.PRECAL_THREAD_COUNT;// 将条目总数分成若干份，每份条目数
+			int i = 0;
 
-		for (int i = 0; i < Constant.PRECAL_THREAD_COUNT; i++) {
-			OspfAnalyser analyser = new OspfAnalyser(this, this.ospfTopo,
-					Constant.PRE_CAL, null);// 第二个参数决定是否是提前分析路径
-			analyser.setRouterIdsToPrecal(allRouterIds.subList(i * eachSize,
-					(i + 1) * eachSize));
-			analyser.start();
-			ospfAnalysers.add(analyser);// 线程开始运行
+			for (; i < Constant.PRECAL_THREAD_COUNT - 1; i++) {
+				createOspfAnalyser(ospfTopo.getAllRouterIds().subList(
+						i * eachSize, (i + 1) * eachSize));
+			}
+
+			createOspfAnalyser(ospfTopo.getAllRouterIds().subList(i * eachSize,
+					ospfTopo.getAllRouterIds().size()));
 		}
 
-		for (int i = 0; i < Constant.PRECAL_THREAD_COUNT; i++) {// 等待全部线程结束
+		for (int i = 0, len = ospfAnalysers.size(); i < len; i++) {// 等待全部线程结束
 			try {
 				ospfAnalysers.get(i).join();
 			} catch (InterruptedException e) {
@@ -85,16 +90,20 @@ public class RouteAnalyser {
 	public void isisPreCalculate() {
 		resetMaterials();
 
-		ArrayList<Long> allRouterIds = this.isisTopo.getAllRouterIds();// 得到全部路由器id列表，供n个线程互斥访问
-		int eachSize = allRouterIds.size() / Constant.PRECAL_THREAD_COUNT;// 将条目总数分成若干份，每份条目数
+		if (isisTopo.getAllRouterIds().size() <= 10) { // 如果当前拓扑节点少于10个
+			createIsisAnalyser(isisTopo.getAllRouterIds());
+		} else {
+			int eachSize = isisTopo.getAllRouterIds().size()
+					/ Constant.PRECAL_THREAD_COUNT;// 将条目总数分成若干份，每份条目数
+			int i = 0;
 
-		for (int i = 0; i < Constant.PRECAL_THREAD_COUNT; i++) {
-			IsisAnalyser analyser = new IsisAnalyser(this, this.isisTopo,
-					Constant.PRE_CAL, null);// 第二个参数决定是否是提前分析路径
-			analyser.setRouterIdsToPrecal(allRouterIds.subList(i * eachSize,
-					(i + 1) * eachSize));
-			analyser.start();
-			isisAnalysers.add(analyser);
+			for (; i < Constant.PRECAL_THREAD_COUNT - 1; i++) {
+				createIsisAnalyser(isisTopo.getAllRouterIds().subList(
+						i * eachSize, (i + 1) * eachSize));
+			}
+
+			createIsisAnalyser(isisTopo.getAllRouterIds().subList(i * eachSize,
+					isisTopo.getAllRouterIds().size()));
 		}
 
 		for (int i = 0; i < Constant.PRECAL_THREAD_COUNT; i++) {
@@ -104,6 +113,22 @@ public class RouteAnalyser {
 				e.printStackTrace();
 			}
 		}
+	}
+
+	private void createOspfAnalyser(List<Long> routerIds) {
+		OspfAnalyser analyser = new OspfAnalyser(this, ospfTopo,
+				Constant.PRE_CAL, null);// 第二个参数决定是否是提前分析路径
+		analyser.setRouterIdsToPrecal(routerIds);
+		analyser.start();
+		ospfAnalysers.add(analyser);
+	}
+
+	private void createIsisAnalyser(List<Long> routerIds) {
+		IsisAnalyser analyser = new IsisAnalyser(this, isisTopo,
+				Constant.PRE_CAL, null);// 第二个参数决定是否是提前分析路径
+		analyser.setRouterIdsToPrecal(routerIds);
+		analyser.start();
+		isisAnalysers.add(analyser);
 	}
 
 	public void ospfRouteCalculate(long pid, int index,
@@ -353,8 +378,12 @@ public class RouteAnalyser {
 	/**
 	 * @return Returns the mapLidTlink.
 	 */
-	public String getProtocalByPort(int port) {
-		return mapPortProtocal.get(port);
+	public String getProtocalByPort(int srcPort, int dstPort) {
+		if (mapPortProtocal.containsKey(dstPort)) {
+			return mapPortProtocal.get(dstPort);
+		}
+
+		return mapPortProtocal.get(srcPort);
 	}
 
 	/**

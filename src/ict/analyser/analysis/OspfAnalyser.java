@@ -203,7 +203,7 @@ public class OspfAnalyser extends Thread {
 		} else {
 			this.dstIn = false;
 			routerId = getAsbrIdByPrefix(ip, mask, flow.getdOctets(),
-					flow.getDstPort());
+					flow.getSrcPort(), flow.getDstPort());
 		}
 
 		return routerId;
@@ -215,7 +215,8 @@ public class OspfAnalyser extends Thread {
 
 	private int dstAS = 0;
 
-	private long getAsbrIdByPrefix(long ip, byte mask, long bytes, int port) {
+	private long getAsbrIdByPrefix(long ip, byte mask, long bytes, int srcPort,
+			int dstPort) {
 		Object[] result = this.topo.getAsbrIdByPrefix(ip, mask);
 
 		if (result == null) {
@@ -223,7 +224,7 @@ public class OspfAnalyser extends Thread {
 		}
 
 		this.dstAS = (Integer) result[2];
-		setMapLidTraffic((Integer) result[1], bytes, port);// 铺域间链路流量
+		setMapLidTraffic((Integer) result[1], bytes, srcPort, dstPort);// 铺域间链路流量
 		return (Long) result[0];// 返回边界路由器id
 	}
 
@@ -368,7 +369,8 @@ public class OspfAnalyser extends Thread {
 		for (int i = 0; i < size; i++) {
 			link = links.get(i);
 			linkId = link.getLinkId();
-			setMapLidTraffic(linkId, bytes, netflow.getDstPort());
+			setMapLidTraffic(linkId, bytes, netflow.getSrcPort(),
+					netflow.getDstPort());
 		}
 		Flow flow = new Flow(netflow, path);
 		this.allFlowRoute.add(flow);
@@ -379,12 +381,13 @@ public class OspfAnalyser extends Thread {
 	 *            The mapLinkIdBytes to set. 如果端口号为0，则算other类流量
 	 */
 
-	public void setMapLidTraffic(int linkId, long bytes, int port) {
+	public void setMapLidTraffic(int linkId, long bytes, int srcPort,
+			int dstPort) {
 		if (linkId == 0 || bytes == 0) {
 			return;
 		}
 
-		String protocal = this.processer.getProtocalByPort(port);// 根据端口号获得协议名字
+		String protocal = this.processer.getProtocalByPort(srcPort, dstPort);// 根据端口号获得协议名字
 
 		// 如果这个端口号没找到相应协议名，记为“other”类型
 		if (protocal == null) {
