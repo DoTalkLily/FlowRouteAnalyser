@@ -62,7 +62,7 @@ public class DBOperator {
 						pstmt.setInt(16, netflow.getOutput());
 						pstmt.setInt(17, netflow.getTos());
 						pstmt.setString(18, oneFlow.getPath()
-								.getPathInIpFormat());
+								.getPathInIpFormat()+"|");
 						pstmt.setLong(19, netflow.getFirst());
 						pstmt.setLong(20, netflow.getLast());
 						pstmt.setShort(21, netflow.getProc());
@@ -111,15 +111,16 @@ public class DBOperator {
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
+			return null;
 		} finally {
 			DBUtils.close(conn);
 		}
 		return null;
 	}
 
-	public static void createTable(long pid) {
+	public static boolean createTable(long pid) {
 		if (pid <= 0) {
-			return;
+			return false;
 		}
 
 		String sql;
@@ -137,8 +138,11 @@ public class DBOperator {
 			statement.close();
 		} catch (SQLException e) {
 			e.printStackTrace();
+			return false;
 		} finally {
 			DBUtils.close(conn);
 		}
+		
+		return true;
 	}
 }

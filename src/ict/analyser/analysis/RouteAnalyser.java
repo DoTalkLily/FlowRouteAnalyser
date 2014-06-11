@@ -33,6 +33,7 @@ public class RouteAnalyser {
 	private long pid = 0;
 	private OspfTopo ospfTopo = null;
 	private IsisTopo isisTopo = null;
+	private boolean createTableSuccessed = false;
 	private ArrayList<OspfAnalyser> ospfAnalysers = null;// 维护一个所有正在运行的分析线程的列表
 	private ArrayList<IsisAnalyser> isisAnalysers = null;// 维护一个所有正在运行的分析线程的列表
 	private HashMap<String, Long> mapProtocalBytes = null;// 赋值给每个TrafficLink的映射
@@ -141,8 +142,8 @@ public class RouteAnalyser {
 			return;
 		}
 
-		if (pid % 10000 == 0 || index == 1) {
-			DBOperator.createTable(pid);
+		if (pid % 10000 == 0 || index == 1||!this.createTableSuccessed) {
+			this.createTableSuccessed = DBOperator.createTable(pid);
 		}
 
 		this.pid = pid;
@@ -188,8 +189,8 @@ public class RouteAnalyser {
 			return;
 		}
 
-		if (pid % 10000 == 0 || index == 1) {
-			DBOperator.createTable(pid);
+		if (pid % 10000 == 0 || index == 1||!this.createTableSuccessed) {
+			this.createTableSuccessed = DBOperator.createTable(pid);
 		}
 
 		this.pid = pid;

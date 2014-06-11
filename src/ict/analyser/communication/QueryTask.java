@@ -70,6 +70,8 @@ public class QueryTask implements Runnable {
 				queryFlow(queryObj);
 			} else if (queryType.equals("link")) {
 				queryLink(queryObj);
+			} else if (queryType.equals("ip7")) {
+				queryFlowBy7Attrs(queryObj);
 			}
 
 		} catch (JSONException e) {
@@ -77,6 +79,90 @@ public class QueryTask implements Runnable {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+
+	private void queryFlowBy7Attrs(JSONObject queryObject) {
+		int srcPort, dstPort;
+		long startPid, endPid;
+		String src, dst, protocal;
+
+		// 字段提取
+		try {
+			JSONObject params = queryObject.getJSONObject("params");
+			startPid = params.getLong("stpid");
+			endPid = params.getLong("edpid");
+			src = params.getString("srcIp");
+			dst = params.getString("dstIp");
+			srcPort = params.getInt("srcPort");
+			dstPort = params.getInt("dstPort");
+			protocal = params.getString("protocol");
+
+		} catch (JSONException e1) {
+			e1.printStackTrace();
+			out.println(new JSONArray());
+			return;
+		}
+
+		if (protocal == null || startPid == 0 || endPid == 0
+				|| startPid < endPid || srcPort <= 0 || dstPort <= 0
+				|| src == null || dst == null) {// 如果参数有问题
+			// 报错
+			out.println(new JSONArray());
+			return;
+		}
+
+		// 判断查询表数目
+		long spid = startPid / 10000;
+		long epid = endPid / 10000;
+		String condition = " and srcIP=" + IPTranslator.calIPtoLong(src)
+				+ " and dstIP =" + IPTranslator.calIPtoLong(dst)+" and srcPort="+srcPort+" and dstPort="+dstPort+" and protocal="+protocal;
+
+		String selectStr = "select bytes,srcIP, dstIP,srcPort,dstPort, path, protocal,input,tos from ";
+		String subTable = "";
+		String whereCondition = "";
+		String table1 = "netflow" + spid;
+		String table2 = "netflow" + (spid + 1);
+		String table3 = "netflow" + epid;
+
+		if (spid == epid) {// 一张表内
+			int startHour = Utils.pid2HourOfYear(startPid);
+			int endHour = Utils.pid2HourOfYear(endPid);
+			subTable = table1;
+			whereCondition = " where hour>=" + startHour + " and hour<="
+					+ endHour + " and pid >= " + startPid + " and pid <="
+					+ endPid + condition;
+		} else if ((spid + 1) == epid) {// 两张表
+			subTable = " ((" + selectStr + table1 + " where pid>=" + startPid
+					+ condition + ") union all (" + selectStr + table3
+					+ " where pid<=" + endPid + condition + ")) as subTable ";
+		} else if ((spid + 2) == epid) {// 三张表
+			subTable = " ((" + selectStr + table1 + " where pid>=" + startPid
+					+ condition + ") union all (" + selectStr + table2
+					+ " where " + condition.trim().substring(4)
+					+ ") union all (" + selectStr + table3 + " where pid<="
+					+ endPid + condition + ")) as subTable ";
+		} else {// 只支持两天范围内数据查询
+			out.println(new JSONArray());
+			return;
+		}
+
+		String otherCondition = " group by srcIP, dstIP,srcPort,dstPort,protocal,input,tos order by byte desc;";
+
+		selectStr = "select sum(bytes) as byte,srcIP, dstIP,srcPort,dstPort, path, protocal,input,tos from ";
+		String sql = selectStr + subTable + whereCondition + otherCondition;
+
+		System.out.println(sql);
+		ResultSet result = DBOperator.queryFlow(sql);
+
+		if (result == null) {
+			out.println(new JSONArray());
+			return;
+		}
+
+		String resultStr = getResultJson(result);
+		out.println(resultStr.toString());
+		System.out.println(resultStr.toString());
+
 	}
 
 	private void queryFlow(JSONObject queryObject) {
@@ -258,14 +344,16 @@ public class QueryTask implements Runnable {
 				+ (pid / 10000) + " where pid=" + pid;
 		String tailCondition = " order by byte desc limit " + topN + ";";
 		String groupCondition = " group by srcIP, dstIP ";
-		String sql = selectStr + " and path like '%" + routerA + "%" + routerB
-				+ "%' " + groupCondition + tailCondition;
+		String sql = selectStr + " and path like '%" + routerA + "|%" + routerB
+				+ "|%' " + groupCondition + tailCondition;
 
 		System.out.println("sql1:" + sql);
 		ResultSet set1 = DBOperator.queryFlow(sql);
-		sql = selectStr + " and path like '%" + routerB + "%" + routerA + "%' "
-				+ groupCondition + tailCondition;
+
+		sql = selectStr + " and path like '%" + routerB + "|%" + routerA
+				+ "|%' " + groupCondition + tailCondition;
 		System.out.println("sql2:" + sql);
+
 		ResultSet set2 = DBOperator.queryFlow(sql);
 
 		JSONObject resultObj = new JSONObject();
@@ -274,34 +362,40 @@ public class QueryTask implements Runnable {
 		JSONArray obverse = new JSONArray();
 		JSONObject item;
 
-		while (set1.next()) {
-			item = new JSONObject();
-			item.put("srcIp", IPTranslator.calLongToIp(set1.getLong("srcIP")));
-			item.put("dstIp", IPTranslator.calLongToIp(set1.getLong("dstIP")));
-			item.put("srcMask", set1.getByte("srcMask"));
-			item.put("dstMask", set1.getByte("dstMask"));
-			item.put("srcAS", set1.getInt("srcAS"));
-			item.put("dstAS", set1.getInt("dstAS"));
-			item.put("bytes", set1.getLong("byte"));
-			item.put("path", set1.getString("path"));
-			obverse.put(item);
+		if (set1 != null) {
+			while (set1.next()) {
+				item = new JSONObject();
+				item.put("srcIp",
+						IPTranslator.calLongToIp(set1.getLong("srcIP")));
+				item.put("dstIp",
+						IPTranslator.calLongToIp(set1.getLong("dstIP")));
+				item.put("srcMask", set1.getByte("srcMask"));
+				item.put("dstMask", set1.getByte("dstMask"));
+				item.put("srcAS", set1.getInt("srcAS"));
+				item.put("dstAS", set1.getInt("dstAS"));
+				item.put("bytes", set1.getLong("byte"));
+				item.put("path", set1.getString("path"));
+				obverse.put(item);
+			}
 		}
 
 		JSONArray reverse = new JSONArray();
-
-		while (set2.next()) {
-			item = new JSONObject();
-			item.put("srcIp", IPTranslator.calLongToIp(set2.getLong("srcIP")));
-			item.put("dstIp", IPTranslator.calLongToIp(set2.getLong("dstIP")));
-			item.put("srcMask", set2.getByte("srcMask"));
-			item.put("dstMask", set2.getByte("dstMask"));
-			item.put("srcAS", set2.getInt("srcAS"));
-			item.put("dstAS", set2.getInt("dstAS"));
-			item.put("bytes", set2.getLong("byte"));
-			item.put("path", set2.getString("path"));
-			reverse.put(item);
+		if (set2 != null) {
+			while (set2.next()) {
+				item = new JSONObject();
+				item.put("srcIp",
+						IPTranslator.calLongToIp(set2.getLong("srcIP")));
+				item.put("dstIp",
+						IPTranslator.calLongToIp(set2.getLong("dstIP")));
+				item.put("srcMask", set2.getByte("srcMask"));
+				item.put("dstMask", set2.getByte("dstMask"));
+				item.put("srcAS", set2.getInt("srcAS"));
+				item.put("dstAS", set2.getInt("dstAS"));
+				item.put("bytes", set2.getLong("byte"));
+				item.put("path", set2.getString("path"));
+				reverse.put(item);
+			}
 		}
-
 		resultObj.put("obverse", obverse);
 		resultObj.put("reverse", reverse);
 		out.println(resultObj.toString());
@@ -357,8 +451,8 @@ public class QueryTask implements Runnable {
 		String portCondition = getPortCondition(protocal);
 		String tailCondition = " group by srcIP, dstIP,srcPort,dstPort,protocal order by byte desc limit "
 				+ topN + ";";
-		String sql = selectStr + " and path like '%" + routerA + "%" + routerB
-				+ "%' " + portCondition + tailCondition;
+		String sql = selectStr + " and path like '%" + routerA + "|%" + routerB
+				+ "|%' " + portCondition + tailCondition;
 
 		System.out.println(sql);
 		ResultSet result = DBOperator.queryFlow(sql);
