@@ -49,8 +49,8 @@ public class QueryTask implements Runnable {
 	private void initTask() {
 		System.out.println("query init");
 		try {
-			this.in = new BufferedReader(new InputStreamReader(
-					this.client.getInputStream()));
+			this.in = new BufferedReader(new InputStreamReader(this.client
+					.getInputStream()));
 			this.out = new PrintWriter(this.client.getOutputStream(), true);
 		} catch (IOException e) {
 			out.println(new JSONArray());
@@ -104,7 +104,7 @@ public class QueryTask implements Runnable {
 		}
 
 		if (protocal == null || startPid == 0 || endPid == 0
-				|| startPid < endPid || srcPort <= 0 || dstPort <= 0
+				|| startPid > endPid || srcPort <= 0 || dstPort <= 0
 				|| src == null || dst == null) {// 如果参数有问题
 			// 报错
 			out.println(new JSONArray());
@@ -115,7 +115,9 @@ public class QueryTask implements Runnable {
 		long spid = startPid / 10000;
 		long epid = endPid / 10000;
 		String condition = " and srcIP=" + IPTranslator.calIPtoLong(src)
-				+ " and dstIP =" + IPTranslator.calIPtoLong(dst)+" and srcPort="+srcPort+" and dstPort="+dstPort+" and protocal="+protocal;
+				+ " and dstIP =" + IPTranslator.calIPtoLong(dst)
+				+ " and srcPort=" + srcPort + " and dstPort=" + dstPort
+				+ " and protocal=" + protocal;
 
 		String selectStr = "select bytes,srcIP, dstIP,srcPort,dstPort, path, protocal,input,tos from ";
 		String subTable = "";
@@ -159,7 +161,8 @@ public class QueryTask implements Runnable {
 			return;
 		}
 
-		String resultStr = getResultJson(result);
+		String resultStr = getResultJson(result,true);
+
 		out.println(resultStr.toString());
 		System.out.println(resultStr.toString());
 
@@ -259,14 +262,15 @@ public class QueryTask implements Runnable {
 			return;
 		}
 
-		String resultStr = getResultJson(result);
+		String resultStr = getResultJson(result,false);
 		out.println(resultStr.toString());
 		System.out.println(resultStr.toString());
 	}
 
-	private String getResultJson(ResultSet result) {
+	private String getResultJson(ResultSet result, boolean is7Attri) {
 		JSONArray resultObj = new JSONArray();
 		JSONObject item;
+		String path = "";
 
 		try {
 			while (result.next()) {
@@ -277,21 +281,29 @@ public class QueryTask implements Runnable {
 					return new JSONArray().toString();
 				}
 
-				item.put("srcIp",
-						IPTranslator.calLongToIp(result.getLong("srcIP")));
-				item.put("dstIp",
-						IPTranslator.calLongToIp(result.getLong("dstIP")));
+				item.put("srcIp", IPTranslator.calLongToIp(result
+						.getLong("srcIP")));
+				item.put("dstIp", IPTranslator.calLongToIp(result
+						.getLong("dstIP")));
 				item.put("srcPort", result.getInt("srcPort"));
 				item.put("dstPort", result.getInt("dstPort"));
-				item.put("srcMask", result.getByte("srcMask"));
-				item.put("dstMask", result.getByte("dstMask"));
-				item.put("srcAS", result.getInt("srcAS"));
-				item.put("dstAS", result.getInt("dstAS"));
+				if (!is7Attri) {
+					item.put("srcMask", result.getByte("srcMask"));
+					item.put("dstMask", result.getByte("dstMask"));
+					item.put("srcAS", result.getInt("srcAS"));
+					item.put("dstAS", result.getInt("dstAS"));
+				}
 				item.put("protocal", result.getInt("protocal"));
 				item.put("index", result.getInt("input"));
 				item.put("tos", result.getInt("tos"));
 				item.put("bytes", result.getLong("byte"));
-				item.put("path", result.getString("path"));
+				path = result.getString("path");
+
+				if (path != null && path.length() != 0) {
+					path = path.substring(0, path.length() - 1);
+				}
+
+				item.put("path", path);
 				resultObj.put(item);
 			}
 			// obj.put("result", resultObj);
@@ -361,20 +373,28 @@ public class QueryTask implements Runnable {
 		resultObj.put("routerB", routerB);
 		JSONArray obverse = new JSONArray();
 		JSONObject item;
+		String path;
 
 		if (set1 != null) {
 			while (set1.next()) {
 				item = new JSONObject();
-				item.put("srcIp",
-						IPTranslator.calLongToIp(set1.getLong("srcIP")));
-				item.put("dstIp",
-						IPTranslator.calLongToIp(set1.getLong("dstIP")));
+				item.put("srcIp", IPTranslator.calLongToIp(set1
+						.getLong("srcIP")));
+				item.put("dstIp", IPTranslator.calLongToIp(set1
+						.getLong("dstIP")));
 				item.put("srcMask", set1.getByte("srcMask"));
 				item.put("dstMask", set1.getByte("dstMask"));
 				item.put("srcAS", set1.getInt("srcAS"));
 				item.put("dstAS", set1.getInt("dstAS"));
 				item.put("bytes", set1.getLong("byte"));
-				item.put("path", set1.getString("path"));
+
+				path = set1.getString("path");
+
+				if (path != null && path.length() != 0) {
+					path = path.substring(0, path.length() - 1);
+				}
+
+				item.put("path", path);
 				obverse.put(item);
 			}
 		}
@@ -383,16 +403,22 @@ public class QueryTask implements Runnable {
 		if (set2 != null) {
 			while (set2.next()) {
 				item = new JSONObject();
-				item.put("srcIp",
-						IPTranslator.calLongToIp(set2.getLong("srcIP")));
-				item.put("dstIp",
-						IPTranslator.calLongToIp(set2.getLong("dstIP")));
+				item.put("srcIp", IPTranslator.calLongToIp(set2
+						.getLong("srcIP")));
+				item.put("dstIp", IPTranslator.calLongToIp(set2
+						.getLong("dstIP")));
 				item.put("srcMask", set2.getByte("srcMask"));
 				item.put("dstMask", set2.getByte("dstMask"));
 				item.put("srcAS", set2.getInt("srcAS"));
 				item.put("dstAS", set2.getInt("dstAS"));
 				item.put("bytes", set2.getLong("byte"));
-				item.put("path", set2.getString("path"));
+				path = set2.getString("path");
+
+				if (path != null && path.length() != 0) {
+					path = path.substring(0, path.length() - 1);
+				}
+
+				item.put("path", path);
 				reverse.put(item);
 			}
 		}
@@ -428,7 +454,7 @@ public class QueryTask implements Runnable {
 			out.println(new JSONArray());
 			return;
 		}
-		String resultStr = getResultJson(result);
+		String resultStr = getResultJson(result,false);
 		out.println(resultStr.toString());
 		System.out.println(resultStr.toString());
 	}
@@ -446,7 +472,7 @@ public class QueryTask implements Runnable {
 		String protocal = params.getString("protocal");
 		String routerA = params.getString("routerA");
 		String routerB = params.getString("routerB");
-		String selectStr = "select bytes as byte,srcIP, dstIP,srcMask,dstMask,srcPort,dstPort,srcAS,dstAS,input,tos,path,protocal from netflow"
+		String selectStr = "select sum(bytes) as byte,srcIP, dstIP,srcMask,dstMask,srcPort,dstPort,srcAS,dstAS,input,tos,path,protocal from netflow"
 				+ (pid / 10000) + " where pid=" + pid;
 		String portCondition = getPortCondition(protocal);
 		String tailCondition = " group by srcIP, dstIP,srcPort,dstPort,protocal order by byte desc limit "
@@ -462,7 +488,7 @@ public class QueryTask implements Runnable {
 			return;
 		}
 
-		String resultStr = getResultJson(result);
+		String resultStr = getResultJson(result,false);
 		out.println(resultStr.toString());
 		System.out.println(resultStr.toString());
 	}

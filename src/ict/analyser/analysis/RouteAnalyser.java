@@ -143,7 +143,9 @@ public class RouteAnalyser {
 		}
 
 		if (pid % 10000 == 0 || index == 1||!this.createTableSuccessed) {
-			this.createTableSuccessed = DBOperator.createTable(pid);
+			if(!DBOperator.isTableExists(pid)){
+				this.createTableSuccessed = DBOperator.createTable(pid);
+			}
 		}
 
 		this.pid = pid;
@@ -425,12 +427,13 @@ public class RouteAnalyser {
 	 *            The mapLidTlink to set.
 	 */
 	public void setMapLidTlink(ArrayList<Integer> linkids) {
+		this.mapLidTlink.clear();
 		if (linkids == null) {
 			return;
 		}
 
 		int size = linkids.size();
-
+        
 		for (int i = 0; i < size; i++) {
 			this.mapLidTlink.put(linkids.get(i), null);
 		}

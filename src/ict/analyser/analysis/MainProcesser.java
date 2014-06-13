@@ -93,6 +93,7 @@ public class MainProcesser {
 	 * 每个周期都要重置的变量
 	 */
 	public void resetMaterials() {
+		this.mapLidTlink.clear();
 		this.flowReceiver.clearFlows();// 20130226加，分析完路径清空流量
 	}
 

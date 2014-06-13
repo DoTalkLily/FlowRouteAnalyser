@@ -130,9 +130,7 @@ public class DBOperator {
 
 		try {
 			statement = conn.createStatement();
-			sql = "drop table if exists netflow" + (pid / 10000);
-			statement.execute(sql);
-			sql = "create table netflow" + (pid / 10000)
+			sql = "create table if not exists netflow" + (pid / 10000)
 					+ Constant.CREATE_TABLE;
 			statement.execute(sql);
 			statement.close();

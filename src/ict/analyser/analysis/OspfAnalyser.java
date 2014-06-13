@@ -162,7 +162,7 @@ public class OspfAnalyser extends Thread {
 				netflow.setDstAs(this.dstAS);
 			}
 
-			debug(path);
+//			debug(path);
 			// 插入流量
 			insertFlow(netflow, path);
 		}// end of for
@@ -439,10 +439,10 @@ public class OspfAnalyser extends Thread {
 		}
 	}
 
-	private void debug(Path path) {
-		System.out.println("result path:" + path.getPathInIpFormat());
-		System.out.println("*********************************************\n");
-	}
+//	private void debug(Path path) {
+//		System.out.println("result path:" + path.getPathInIpFormat());
+//		System.out.println("*********************************************\n");
+//	}
 
 	//
 	private void debug(long srcIp, long dstIp) {

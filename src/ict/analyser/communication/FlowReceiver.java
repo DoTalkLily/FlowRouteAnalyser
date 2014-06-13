@@ -81,6 +81,7 @@ public class FlowReceiver implements Runnable {
 		try {
 			openBufferedConnect();// 建立带缓存连接
 			sendOrder(3);// 发送流量请求
+            System.out.println("send order for flow to device!!!!!!!"); 
 			getOrder(4);// 得到响应
 		} catch (IOException e) {
 			faultProcess(e);
@@ -374,39 +375,49 @@ public class FlowReceiver implements Runnable {
 	public void getOrder(int orderCode) throws IOException {
 		int read = 0;
 		byte[] orderGot = new byte[8];
-
+           
 		read = this.in.read(orderGot);
-
+        System.out.println("order got from device!!!!");
 		if (read < 8) {
-			logger.warning("device not closed!");
+			logger.warning("device not closed!!!!");
 			// +错误处理,这里错误处理都有待讨论……
+			return ;
 		}
 
 		int received = Utils.byte2int(orderGot, 0);// 得到应答命令码
 
-		if (received != orderCode) {// 如果应答命令码不正常，报错
+		if (received != orderCode) {// 如果应答命令码不正常，报错lock.lock();
+			System.out.println("device error!!! received :"+received+" orderCode:"+orderCode);
+			unlock();
+			return;
 			// +错误处理
 		}
 
 		received = Utils.byte2int(orderGot, 2);// 应答状态
 
 		if (received == 1) {// 应答失败
-
+            System.out.println("device send wrong state to me!!! received code=1");
 			received = Utils.Bytes4ToInt(orderGot, 4);// 数据长度
 			// 数据值这里有待定义 根据错误类型报错！
 			// value ...
+			unlock();
+			return;
 		}
 
 		if (orderCode == 4) {// 如果命令码是4，代表响应的是流量读取请求,得到流量总大小
+			System.out.println("device send flow to me!!!");
 			WHOLE_BYTES = Utils.Bytes4ToInt(orderGot, 4);// 数据总长度
-
-			lock.lock();
-			try {
-				GET_WHOLE_BYTE = true;
-				condition.signalAll();
-			} finally {
-				lock.unlock();
-			}
+			unlock();
+		}
+	}
+	
+	private void unlock(){
+		lock.lock();
+		try {
+			GET_WHOLE_BYTE = true;
+			condition.signalAll();
+		} finally {
+			lock.unlock();
 		}
 	}
 
