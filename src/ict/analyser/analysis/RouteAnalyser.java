@@ -107,7 +107,7 @@ public class RouteAnalyser {
 					isisTopo.getAllRouterIds().size()));
 		}
 
-		for (int i = 0; i < Constant.PRECAL_THREAD_COUNT; i++) {
+		for (int i = 0,len = isisAnalysers.size() ; i < len; i++) {
 			try {
 				isisAnalysers.get(i).join();
 			} catch (InterruptedException e) {
@@ -192,7 +192,9 @@ public class RouteAnalyser {
 		}
 
 		if (pid % 10000 == 0 || index == 1||!this.createTableSuccessed) {
-			this.createTableSuccessed = DBOperator.createTable(pid);
+			if(!DBOperator.isTableExists(pid)){
+				this.createTableSuccessed = DBOperator.createTable(pid);
+			}
 		}
 
 		this.pid = pid;
@@ -212,7 +214,6 @@ public class RouteAnalyser {
 								(i + 1) * eachSize));
 				analyser.start();
 				this.isisAnalysers.add(analyser);// 加入列表集中管理
-
 			}
 		}
 
